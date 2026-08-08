@@ -199,6 +199,9 @@ class MCPServerProcess:
                     logger.info(f"🔁 MCP一過性エラーのためリトライ ({attempt}/{max_attempts}): {self.name}")
                     time.sleep(0.8)
                     continue
+                # 引数エラーには有効値ヒントを付記し、LLM（executor/supervisor）が正しい値で自己修復できるようにする
+                if "datamodel_type is required" in text or "Invalid datamodel_type" in text:
+                    text += "\n(hint: datamodel_type の有効値は \"Edit\" / \"Client\" / \"Server\" の3つのみ。編集中のPlace操作は \"Edit\" を指定)"
                 return f"[MCP Tool Error] {text}"
             return text
         return "[MCP Tool Error] リトライ回数超過"

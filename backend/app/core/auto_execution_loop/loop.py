@@ -493,6 +493,7 @@ async def auto_execute_with_retry(
             
             if has_tool_results:
                 has_error = False
+                error_abort = False
                 for result in tool_handler.tool_results:
                     error_info = _detect_error(result)
                     if error_info:
@@ -523,9 +524,20 @@ async def auto_execute_with_retry(
                                 _clear_ui_with_progress(yield_sse_func, _ui_progress("fix_and_retry"))
                                 final_accumulated_response = ""
                                 continue
+                            else:
+                                # Supervisor応答なし（JSONパース失敗等）→ 同じ指示で空転しないよう打ち切る
+                                error_abort = True
+                                break
                         else:
-                            final_accumulated_response += stream_response + "\n"
+                            error_abort = True
                             break
+                if error_abort:
+                    # エラー自動修正の打ち切り: while ループ自体を終了する
+                    # （従来は for しか抜けず、max_tool_loops まで空転してLLMコールを浪費していた）
+                    logger.warning("🛑 エラー自動修正の上限に到達したためループを終了し、現在の結果で回答を合成します")
+                    final_accumulated_response += stream_response + "\n"
+                    force_tool_synthesis = True
+                    break
                 
                 if not has_error:
                     # 完全タグでシグネチャ抽出（args内のLuau比較演算子 > 等で切断されないように）
