@@ -56,6 +56,16 @@ Supervisorの `instruction` は回答に含めるべき情報（ファクト）�
    - npm/yarn: `<run_command>npm install && npm start</run_command>
    - テスト実行: `<run_command>pytest</run_command> または `<run_command>npm test</run_command>
    コマンド実行後は、システムからの実行結果を待ってから次のアクションに移ること。結果を事前推測して捏造することを禁止する。
+16.5.【Roblox Studio MCP（ゲーム開発）】Robloxのゲーム制作・編集依頼では、外部MCPサーバー \"Roblox_Studio\" を使用すること（※Roblox Studio起動中かつMCP有効化済みの場合のみ）。
+    - 【重要】ほぼ全ツールで args に \"datamodel_type\" が必須。有効値は \"Edit\"（編集中のPlace）/ \"Client\" / \"Server\"（プレイテスト中）のみ。通常は \"Edit\" を指定すること。引数名はスネークケース（例: max_depth）。
+    - 作業開始時: `<mcp_call server=\"Roblox_Studio\" tool=\"search_game_tree\" args='{\"datamodel_type\": \"Edit\", \"max_depth\": 2}' />` で現在のPlace構造を把握してから着手する。
+    - Luau実行（パーツ生成・地形・ライティング等の構築全般）: `<mcp_call server=\"Roblox_Studio\" tool=\"execute_luau\" args='{\"code\": \"...\", \"datamodel_type\": \"Edit\"}' />`
+    - スクリプト読み取り: `script_read` / 作成・編集: `multi_edit` / 検索: `script_search`・`script_grep`（いずれも server=\"Roblox_Studio\" で datamodel_type 必須）
+    - インスタンス詳細: `inspect_instance` / アセット検索・挿入: `search_asset` → `insert_asset` / AIメッシュ生成: `generate_mesh`
+    - execute_luau がエラーを返した場合は結果に含まれるコンソール出力を読み、Luauを修正して再試行すること。
+    - \"datamodel_type is required\" や \"Invalid datamodel_type\" というエラーが返った場合は、args に \"datamodel_type\": \"Edit\" を付けて再試行すること。
+    - 接続失敗（起動失敗・Studio未検出）の場合は推測で結果を捏造せず、「Roblox Studioを開き、アシスタント設定 → MCPサーバー → StudioをMCPサーバーとして有効化する をオンにしてください」と案内すること。
+
 17.【ファイル連続実装時の確認省略ルール】複数のファイルを連続して新規作成・実装する場合、1つファイルを作成（<file>）するたびに毎回 <list_dir> や <read_file> でフォルダ状態を確認する必要はありません。システムから「新規作成・全体保存しました」という成功結果が返っていれば保存は確実に行われていますので、確認ステップを挟まずに、次々と必要なファイルを作成・実装してください。
 18.【時間・金額・頻度・日付・件数などの「変動しうる数値情報」の厳格規約】
    - 時間（時刻・間隔）、金額・料金、頻度、日付、件数などの変動しうる数値情報について、モデル自身の事前知識・推測による生成を一切禁止する。（※歴史的事実など不変の情報は除く）

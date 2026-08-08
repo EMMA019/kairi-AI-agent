@@ -201,6 +201,44 @@ def test_holdings_context_helper():
     assert not user_in_holdings_context("Microsoftのいいニュースあった？")
 
 
+def test_accept_oboeteite_profile_save():
+    """回帰: 「覚えていてほしいこと…」は明示的保存指示として受理する（2026-08 保存不能バグ）。"""
+    user = (
+        "覚えていてほしいこと①1990/01/01生まれ②好きな食べ物ラーメン"
+        "③好きな飲み物コーヒー④こども2020/04/01生まれの女の子でスイミング習ってる"
+    )
+    action = {
+        "action": "add",
+        "category": "profile",
+        "quote": user,
+        "summary": {
+            "target": "ユーザープロフィール",
+            "note": "誕生日: 1990/01/01 / 好きな食べ物: ラーメン / 好きな飲み物: コーヒー / 子供: 2020/04/01生まれの女の子・スイミング習い中",
+            "tags": ["誕生日", "ラーメン", "コーヒー", "子供", "スイミング"],
+        },
+    }
+    ok, reason = should_accept_kv_action(user, action)
+    assert ok, reason
+
+
+def test_save_pattern_variants_accepted():
+    """「覚えていてほしい/覚えてほしい/覚えてね/記憶してほしい」系の自然な保存依頼を受理。"""
+    assert user_requests_memory_save("私の誕生日を覚えていてほしい")
+    assert user_requests_memory_save("この内容を覚えてほしい")
+    assert user_requests_memory_save("カレーが好きって覚えてね")
+    assert user_requests_memory_save("次の予定を記憶してほしい")
+    assert user_requests_memory_save("覚えててください")
+
+
+def test_non_save_utterances_still_rejected():
+    """保存指示でない発言は従来どおり拒否（誤保存防止を維持）。"""
+    assert not user_requests_memory_save("おまかせします")
+    assert not user_requests_memory_save("おはよう")
+    assert not user_requests_memory_save("カレーの写真を見せて")
+    assert not user_requests_memory_save("覚えてる?")
+    assert not user_requests_memory_save("今日の米国市場どうだった？")
+
+
 def test_strip_hobby_personalization_violation():
     raw = (
         "$20の予算を最大限活かす構成として、ドメイン取得＋無料ホスティングで"

@@ -28,6 +28,7 @@ class MCPServerProcess:
         self._responses: dict[int, str] = {}
         self._reader_thread: Optional[threading.Thread] = None
         self._running = False
+        self._initialized = False
 
     def start(self):
         if self._running and self.process and self.process.poll() is None:
@@ -49,7 +50,9 @@ class MCPServerProcess:
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=full_env,
                 )
             self._running = True
+            self._initialized = False  # 新プロセスはハンドシェイク未実施
             self._start_reader()
+            self._start_stderr_drain()
             logger.info(f"✅ MCP起動: {self.name}")
             return True
         except Exception as e:
@@ -85,9 +88,65 @@ class MCPServerProcess:
         self._reader_thread = threading.Thread(target=_reader, daemon=True)
         self._reader_thread.start()
 
+    def _start_stderr_drain(self):
+        """stderrを吸い上げる（パイプバッファ満杯による子プロセスのデッドロック防止＋ログ可視化）"""
+        def _drain():
+            while self._running and self.process:
+                try:
+                    line = self.process.stderr.readline()
+                    if not line:
+                        break
+                    text = line.decode('utf-8', errors='ignore').strip()
+                    if text:
+                        logger.debug(f"[MCP:{self.name}:stderr] {text[:300]}")
+                except Exception:
+                    break
+        t = threading.Thread(target=_drain, daemon=True)
+        t.start()
+
+    def _do_initialize(self) -> bool:
+        """MCPプロトコルの initialize ハンドシェイク（プロセス起動後の初回のみ必須）"""
+        if self._initialized:
+            return True
+        self._request_id += 1
+        rid = self._request_id
+        req = {
+            "jsonrpc": "2.0", "id": rid, "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "kairi", "version": "1.0"},
+            },
+        }
+        try:
+            import time
+            self.process.stdin.write((json.dumps(req) + "\n").encode())
+            self.process.stdin.flush()
+            deadline = time.time() + 30
+            while time.time() < deadline:
+                with self._lock:
+                    if rid in self._responses:
+                        self._responses.pop(rid)
+                        break
+                time.sleep(0.1)
+            else:
+                logger.error(f"❌ MCP initialize タイムアウト: {self.name}")
+                return False
+            note = {"jsonrpc": "2.0", "method": "notifications/initialized"}
+            self.process.stdin.write((json.dumps(note) + "\n").encode())
+            self.process.stdin.flush()
+            self._initialized = True
+            logger.info(f"🤝 MCP initialize完了: {self.name}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ MCP initialize失敗: {self.name} - {e}")
+            return False
+
     def _send(self, method: str, params: dict = None, timeout: float = 120.0) -> dict:
         if not self.start():
             return {"error": {"message": "起動失敗"}}
+        if method != "initialize" and not self._do_initialize():
+            return {"error": {"message": "initialize失敗"}}
         self._request_id += 1
         rid = self._request_id
         req = {"jsonrpc": "2.0", "id": rid, "method": method}
@@ -120,8 +179,18 @@ class MCPServerProcess:
     def stop(self):
         self._running = False
         if self.process and self.process.poll() is None:
-            try: self.process.terminate(); self.process.wait(timeout=5)
-            except: self.process.kill()
+            try:
+                if os.name == 'nt':
+                    # cmd.exe 経由で起動しているため、terminate だけでは実際の
+                    # MCPサーバー子プロセス（StudioMCP.exe 等）が孤児化する。
+                    # taskkill /T でプロセスツリーごと停止する。
+                    subprocess.run(['taskkill', '/PID', str(self.process.pid), '/T', '/F'],
+                                   capture_output=True, timeout=5)
+                else:
+                    self.process.terminate(); self.process.wait(timeout=5)
+            except Exception:
+                try: self.process.kill()
+                except Exception: pass
 
 
 class MCPManager:
