@@ -1,0 +1,22 @@
+id: citation_no_oversoften
+description: 一般カタカナ・API等を氏名未記載に置換しすぎないこと
+input: "2について具体的にわかりやすく聞いてみたいな"
+history: []
+search_results: |
+  [1] AMD has more than doubled in 2026. UBS sees more room to run.
+  Amazon earnings momentum. Mortgage rates rose this weekend.
+mock_executor_output: |
+  ミニSaaSは特定機能のAPIサービスです。ユーザーがキーワードを登録し、クレジットをプリペイドで購入します。
+  Cloudflare WorkersとStripeで自動化できます。サービス体験はcurlで確認できます。
+expectations:
+  must_contain:
+    - "API"
+    - "ユーザー"
+    - "キーワード"
+    - "サービス"
+    - "クレジット"
+  must_not_contain:
+    - "氏名はソース未記載"
+  # 要確認の連発も避ける（一般説明文）
+  must_not_match: "（要確認）.+（要確認）.+（要確認）.+（要確認）"
+pipeline: fact_filters_only

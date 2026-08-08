@@ -1,0 +1,18 @@
+id: search_skip_carryover
+description: フォローアップで前ターン検索結果が再利用されること（ユニット検証）
+input: "でも直前まで13倍以上ついてたんだよね。競馬もアルゴ入ってるのかな"
+history:
+  - role: user
+    content: "カルパナに賭けて大当たりだった"
+  - role: assistant
+    content: "カルパナの好配当でしたね"
+search_results: ""
+carryover_fixture:
+  session_id: eval-carry-1
+  prev_text: "カルパナはキングジョージを制覇。オッズは11.8倍。騎手名の記載なし。"
+  prev_queries:
+    - "Kalpana King George 2026"
+  prev_user_input: "カルパナに賭けて大当たりだった"
+expectations:
+  carryover_injected: true
+pipeline: carryover_only

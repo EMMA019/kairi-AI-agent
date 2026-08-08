@@ -1,0 +1,85 @@
+import os
+
+def _ei(key, default):
+    v = os.getenv(key, "").strip()
+    return int(v) if v else default
+
+def _ef(key, default):
+    v = os.getenv(key, "").strip()
+    return float(v) if v else default
+
+CONFIG = {
+    "CAPITAL_JPY":       _ei("CAPITAL_JPY",       1_000_000),
+    "MAX_POSITIONS":     _ei("MAX_POSITIONS",      20),
+    "ACCOUNT_RISK_PCT":  _ef("ACCOUNT_RISK_PCT",   0.015),
+    "MAX_SAME_SECTOR":   _ei("MAX_SAME_SECTOR",    2),
+    "MIN_RS_RATING":     _ei("MIN_RS_RATING",      70),
+    "MIN_VCP_SCORE":     _ei("MIN_VCP_SCORE",      55),
+    "MIN_PROFIT_FACTOR": _ef("MIN_PROFIT_FACTOR",  1.1),
+    "STOP_LOSS_ATR":     _ef("STOP_LOSS_ATR",      2.0),
+    "TARGET_R_MULTIPLE": _ef("TARGET_R_MULTIPLE",  2.5),
+    "CACHE_EXPIRY":      12 * 3600,
+}
+
+TICKERS = [
+    "NVDA", "BKNG", "AAPL", "GOOGL", "GOOG", "MSFT", "AMZN", "META", "TSM", "VOO",
+    "MELI", "ASML", "LLY", "AVGO", "TSLA", "KLAC", "SPY", "IVV", "COST", "FICO",
+    "TDG", "FIX", "BLK", "MPWR", "GS", "WMT", "GWW", "JPM", "PH", "CAT",
+    "QQQ", "MCK", "GEV", "MA", "V", "MU", "URI", "VTI", "ARGX", "REGN",
+    "VGT", "AZN", "JNJ", "NOC", "EME", "VUG", "XOM", "LMT", "HD", "DE",
+    "ULTA", "SNDK", "LIN", "TMO", "VXUS", "MLM", "TDY", "IDXX", "GE", "CASY",
+    "ISRG", "CMI", "AMAT", "GLD", "HCA", "LITE", "ABBV", "ORCL", "PWR", "VRTX",
+    "AXP", "AMGN", "MSCI", "AMD", "SPOT", "CACI", "LII", "CVX", "MCD", "UNH",
+    "TT", "LRCX", "HUBB", "APP", "SPGI", "POWL", "BLD", "DIA", "PG", "BABA",
+    "MCO", "ETN", "SNPS", "MSI", "FN", "CRWD", "SYK", "AMP", "STX", "ADI",
+    "PLTR", "IBM", "VO", "MDGL", "INTU", "UTHR", "BAC", "RTX", "NVS", "BND",
+    "FDX", "NFLX", "PM", "TPL", "SMH", "MS", "NVMI", "AXON", "CB", "TMUS",
+    "MEDP", "SHW", "MAR", "VB", "SAP", "KO", "INTC", "GD", "CVNA", "LOW",
+    "MRK", "HII", "ROK", "VTV", "TXN", "BA", "WSO", "RACE", "COR", "CYBR",
+    "UNP", "DY", "ELV", "STRL", "CSL", "SITM", "MGK", "AGX", "LHX", "CSCO",
+    "WWD", "CME", "RY", "WDC", "RCL", "SNA", "RL", "PEP", "SAIA", "HON",
+    "MUSA", "DPZ", "MDB", "AON", "HSBC", "IWM", "HLT", "CRS", "CEG", "CDNS",
+    "HEI", "ECL", "NSC", "WFC", "OIH", "VEA", "ITW", "VV", "CRM", "ADBE",
+    "ALNY", "CPAY", "BAP", "IDCC", "CI", "TER", "ACN", "TRV", "OEF", "ROP",
+    "DHR", "EG", "LPLA", "CIEN", "PEN", "SCCO", "RS", "HWM", "GILD", "VIG",
+    "COF", "WAT", "APD", "APH", "EVR", "VRT", "C", "AMG", "VMC", "TJX",
+    "IBP", "PRAX", "AEM", "AEIS", "WTW", "TYL", "BURL", "WM", "QQQM", "JLL",
+    "CLS", "PGR", "ANET", "PNC", "ABT", "AYI", "RSP", "FTAI", "SHEL", "RNR",
+    "WCC", "NDSN", "CBOE", "DIS", "FERG", "QCOM", "ADP", "TEL", "SLV", "LECO",
+    "WAB", "FNV", "VXF", "LH", "NXPI", "NVO", "BX", "VZ", "SHOP", "RMD",
+    "RGLD", "VBR", "FFIV", "NEE", "KRYS", "CLH", "T", "AIT", "AME", "JBL",
+    "WING", "RSG", "MTZ", "GRMN", "SCHW", "KEYS", "ADSK", "AVAV", "CAH", "TRGP",
+    "CTAS", "PODD", "LNG", "STE", "NEM", "PANW", "CHTR", "AJG", "ARM", "HSY",
+    "BHP", "MRSH", "MKSI", "MTB", "ROST", "WST", "FSLR", "MTSI", "JNUG", "ALL",
+    "COHR", "ZBRA", "NET", "VLO", "HUBS", "POOL", "DOV", "RIO", "MPC", "PKG",
+    "TD", "PDD", "COP", "GLW", "MMM", "DASH", "ITA", "UBER", "SPXC", "EA",
+    "AGG", "THC", "BDX", "PFE", "UHS", "ICE", "NUGT", "NOW", "NTRA", "VYM",
+    "JBHT", "XLK", "BMO", "NXST", "FDN", "SNOW", "DRI", "GNRC", "ASND", "EMR",
+    "WSM", "IEMG", "VRSN", "EXP", "TTWO", "RGA", "ODFL", "VST", "MDT", "UL",
+    "BUD", "VT", "RRX", "JCI", "IJR", "R", "ONTO", "TKO", "MOD", "EXPE",
+    "AIZ", "SPXL", "XPO", "NUE", "VWO", "DGX", "DUK", "VOE", "FIVE", "FANG",
+    "IEX", "BIIB", "COIN", "PSX", "ITT", "UPS", "VSEC", "STLD", "ENSG", "XLI",
+    "BWXT", "DHI", "DKS", "EFX", "SBUX", "XLV", "GTLS", "RH", "CRH", "WPM",
+    "VEEV", "HDB", "SLAB", "BSX", "HUM", "AN", "CR", "LEU", "VRSK", "FBT",
+    "CHRW", "IBKR", "BE", "AVY", "YUM", "ATO", "TQQQ", "BK", "IJH", "WCN",
+    "NRG", "FDS", "ALGN", "EFA", "LULU", "AWI", "DELL", "ABNB", "BOOT", "IQV",
+    "PLXS", "ZS", "IAU", "AEP", "BR", "TXRH", "CBRE", "SO", "BMY", "NTES",
+    "ALB", "LYV", "EOG", "PCAR", "RJF", "AXSM", "LDOS", "CMCSA", "MSTR", "MO",
+    "BTI", "GSK", "ZTS", "TPR", "CVS", "CINF", "DG", "BIDU", "TLT", "CM",
+    "LQD", "STZ", "SE", "MASI", "INSM", "WDAY", "IBB", "COKE", "HOOD", "H",
+    "DVY", "WMS", "RDDT", "OSK", "APPF", "DAVE", "CHKP", "MKTX", "UBS", "FCX",
+    "ENS", "SOXL", "AER", "CL", "HIG", "NKE", "ARES", "NGG", "THG", "IMO",
+    "JAZZ", "ACWI", "ORLY", "GRID", "CRWV", "HLI", "EPAM", "ALLE", "TOL", "NTRS",
+    "TGT", "AFL", "CNI", "FUTU", "SDY", "PTC", "SNX", "IT", "DTE", "DDOG",
+    "BNDX", "CCJ", "GM", "MIDD", "XLF", "DXJ", "GDX", "MATX", "BNS", "MNST",
+    "JBTM", "EXPD", "PHM", "JKHY", "ATI", "WMB", "VSS", "VEU", "MORN", "PRIM",
+    "ENB", "STT", "LABU", "VONG", "CRL", "AU", "EAT", "VCIT", "WTFC", "USB",
+    "ESGU", "NU", "A", "CAMT", "VDE", "MRVL", "WEX", "DLTR", "BMI", "VICR",
+    "XYL", "CP", "XLE", "UAL", "ARW", "BN", "CRDO", "PPG", "SITE", "IRTC",
+    "J", "DVA", "ALAB", "AWK", "PJT", "EWY", "LCII", "EL", "SLB", "SRE",
+    "IEF", "SANM", "ENTG", "LEN", "BPOP", "SATS", "GL", "SPYG", "KMB", "ED",
+    "CRUS", "CFR", "CCEP", "WEC", "CPA", "XLY", "FLUT", "GDXJ", "MDLZ", "ENVA",
+    "LSTR", "GLDM", "BDC", "MANH", "BP", "HRI", "BSV", "XLC", "MOH", "FTNT",
+    "B", "HDV", "ETR", "ATR", "IBN", "NOVT", "DEO", "NLR", "IDA", "AGCO",
+    "PBR", "HYG", "FAS", "MTN", "DTM", "SN", "BG", "OKE", "OC", "RGEN"
+]

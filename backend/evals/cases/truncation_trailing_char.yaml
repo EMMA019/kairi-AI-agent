@@ -1,0 +1,17 @@
+id: truncation_trailing_char
+description: 途切れた末尾1文字（承）が最終応答に残らないこと
+input: "7/24米国市場どうだった？"
+history: []
+search_results: |
+  [1] Reuters: Dow rose 0.5%, Nasdaq fell 0.6% on July 24, 2026.
+  S&P 500 was nearly flat.
+mock_executor_output: |
+  承知しました。現在（7月25日土曜）は週末で米国市場は休場ですので、前営業日である7月24日（金）の終値データをもとに総括いたします。まず、残りの主要指数データを取得します。
+
+  承
+expectations:
+  ends_with_terminal: true
+  must_not_contain:
+    - "\n承"
+  must_not_match: "(?m)^承$"
+pipeline: fact_filters_only

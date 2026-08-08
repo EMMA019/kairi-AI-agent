@@ -1,0 +1,16 @@
+id: citation_required
+description: 時事断定に引用番号がない場合は不確実化されること
+input: "カルパナの結果は？"
+history: []
+search_results: |
+  [1] Kalpana won King George 2026 at Ascot. Final odds about 11.8.
+mock_executor_output: |
+  カルパナはキングジョージを制覇し、単勝オッズは11.8倍でした。
+expectations:
+  # 引用検証後は引用が付くか、不確実マーカーが付く
+  must_contain_any:
+    - "[1]"
+    - "要確認"
+    - "未確認"
+    - "※"
+pipeline: fact_filters_only

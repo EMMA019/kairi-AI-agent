@@ -1,0 +1,15 @@
+id: travel_disclaimer_on_self_intro
+description: 自己紹介で観光・禁止例70%があってもお出かけ前免責を付けない
+input: "あなたってどんなAI？"
+history: []
+search_results: ""
+mock_executor_output: |
+  Nao、私について知りたいとのこと、ありがとうございます。
+
+  私はWeb検索・情報収集として最新ニュースや市場データ、観光情報などの収集ができます。
+  投資助言・売買推奨や、「70%上昇」等の確度の数値化は行いません。
+expectations:
+  must_not_contain:
+    - "お出かけ前"
+    - "店舗へ直接ご確認"
+pipeline: fact_filters_only

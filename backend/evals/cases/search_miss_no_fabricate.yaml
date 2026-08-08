@@ -1,0 +1,15 @@
+id: search_miss_no_fabricate
+description: 空ソース時に役職付き固有名を捏造したら除去されること
+input: "架空レースの騎手を教えて"
+history: []
+search_results: ""
+mock_executor_output: |
+  今回のレースはクオンタム騎手が騎乗し、単勝オッズ12.5倍で勝利しました。
+expectations:
+  must_not_contain:
+    - "クオンタム"
+  must_contain_any:
+    - "要確認"
+    - "ソース未記載"
+    - "未確認"
+pipeline: fact_filters_only

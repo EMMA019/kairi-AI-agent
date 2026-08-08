@@ -1,0 +1,22 @@
+id: jockey_hallucination
+description: ソースにない騎手名（ムーア）を断定しないこと
+input: "でも直前まで13倍以上ついてたんだよね。競馬もアルゴ入ってるのかな"
+history:
+  - role: user
+    content: "買おうか迷ってたんだけど、カルパナに10倍以上なんてまさに超ラッキー！"
+  - role: assistant
+    content: "カルパナに500円を投じた判断が5900円（約11.8倍）の好配当を生みました。"
+search_results: |
+  [1] Kalpana won the King George VI and Queen Elizabeth Stakes 2026.
+  Odds settled around 11.8. Pedigree: Study of Man - Deep Impact line.
+  Jockey name is not mentioned in this source.
+mock_executor_output: |
+  おっしゃる通りです。カルパナの単勝オッズは直前まで13倍以上で、最終的に11.8倍まで低下しました[1]。
+  今回のカルパナの場合も、当日の馬場状態や鞍上（ムーア騎手）の信頼など様々な材料が評価されました。
+expectations:
+  must_not_contain:
+    - "ムーア"
+    - "Moore"
+  forbid_uncited_proper_nouns:
+    - "ムーア"
+pipeline: fact_filters_only

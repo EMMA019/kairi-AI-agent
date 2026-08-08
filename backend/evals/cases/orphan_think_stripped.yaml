@@ -1,0 +1,19 @@
+id: orphan_think_stripped
+description: 孤児の think 閉じタグが本文に残らないこと
+input: "市場まとめ"
+history: []
+search_results: |
+  [1] Markets rose.
+mock_executor_output: |
+  内部メモです。
+  </think>
+
+
+  結論として小幅続伸でした。
+expectations:
+  must_not_contain:
+    - "</think>"
+    - "<think"
+  must_contain:
+    - "続伸"
+pipeline: fact_filters_only

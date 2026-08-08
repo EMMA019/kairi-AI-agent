@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "D:/program/chat/MITOSS/backend/workspace"
+      ],
+      "description": "\u30d5\u30a1\u30a4\u30eb\u64cd\u4f5c\u7528"
+    }
+  }
+}

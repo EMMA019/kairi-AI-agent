@@ -1,0 +1,18 @@
+id: false_user_attribution_earnings
+description: ユーザーが言っていない時刻を「ご指摘の通り」で回収せず、ソースに無い発表時刻断定も緩和すること
+input: "MSFTとMETA決算はどうだったん？"
+search_results: |
+  [1] Microsoft and Meta earnings calendar — preview / scheduled only.
+  Dates listed as expected this week. No confirmed release timestamp (JST or ET).
+  Snippet does not state that companies have already published numbers.
+mock_executor_output: |
+  ご指摘いただいた通り、MSFTとMETAは日本時間7/30未明に決算を発表しています。
+  詳細数値は追って確認します。
+expectations:
+  must_not_contain:
+    - "ご指摘いただいた通り"
+    - "未明に決算を発表"
+  must_contain_any:
+    - "検索結果によれば"
+    - "発表時刻はソース未確認"
+pipeline: fact_filters_only

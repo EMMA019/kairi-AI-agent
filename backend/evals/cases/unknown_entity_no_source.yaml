@@ -1,0 +1,16 @@
+id: unknown_entity_no_source
+description: ソースに無い架空固有名の断定は不確実化／除去されること
+input: "ゼブラステークスの騎手は誰？"
+history: []
+search_results: |
+  [1] Zebra Stakes 2026 was postponed. No jockey name is listed in this brief.
+mock_executor_output: |
+  ゼブラステークスはゼブラトン騎手が騎乗して優勝しました。
+expectations:
+  must_not_contain:
+    - "ゼブラトン"
+  must_contain_any:
+    - "要確認"
+    - "ソース未記載"
+    - "未確認"
+pipeline: fact_filters_only

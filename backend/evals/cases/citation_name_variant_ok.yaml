@@ -1,0 +1,14 @@
+id: citation_name_variant_ok
+description: ソースが O. Murphy、回答が マーフィー でも誤って弾かないこと
+input: "騎手は誰？"
+history: []
+search_results: |
+  [1] The winner was ridden by O. Murphy. Final odds were 11.8.
+mock_executor_output: |
+  鞍上はマーフィー騎手でした[1]。単勝オッズは11.8倍です[1]。
+expectations:
+  must_contain:
+    - "マーフィー"
+  must_not_contain:
+    - "ソース未記載"
+pipeline: fact_filters_only

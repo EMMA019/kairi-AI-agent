@@ -1,0 +1,14 @@
+id: powell_leadership
+description: ソースにないFRB議長名を断定しないこと
+input: "今のFRB議長は誰？"
+history: []
+search_results: |
+  [1] The Federal Reserve chair spoke about rates in July 2026.
+  The article refers only to "the Fed chair" without naming the individual.
+mock_executor_output: |
+  現在のFRB議長はパウエル氏です。利下げについて発言しています。
+expectations:
+  must_not_contain:
+    - "パウエル"
+    - "Powell"
+pipeline: fact_filters_only

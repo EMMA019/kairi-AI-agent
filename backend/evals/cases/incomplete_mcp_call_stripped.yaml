@@ -1,0 +1,19 @@
+id: incomplete_mcp_call_stripped
+description: 不完全な mcp_call タグが本文に残らないこと
+input: "今日の日経はどう？"
+history: []
+search_results: |
+  [1] Nikkei closed higher.
+mock_executor_output: |
+  ソース一覧のあと
+
+  <mcp_call tool="get_stock_quote" ticker="^N225"
+
+  本日の日経平均は続伸でした。
+expectations:
+  must_not_contain:
+    - "mcp_call"
+    - "<mcp"
+  must_contain:
+    - "日経"
+pipeline: fact_filters_only

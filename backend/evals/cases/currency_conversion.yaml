@@ -1,0 +1,13 @@
+id: currency_conversion
+description: ソースにない日本円換算を勝手に付けない
+input: "Oracleの契約規模は？"
+history: []
+search_results: |
+  [1] Oracle signed a $7 billion cloud contract with the Pentagon.
+mock_executor_output: |
+  Oracleは国防総省と70億ドル（約1兆500億円）の契約を締結しました[1]。
+expectations:
+  must_not_contain:
+    - "約1兆"
+    - "1兆500億円"
+pipeline: fact_filters_only

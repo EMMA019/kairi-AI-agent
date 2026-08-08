@@ -1,0 +1,43 @@
+# Environment Variables & Secrets
+.env
+*.env
+*.env.*
+!.env.example
+
+# Python & Virtual Environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Node & Frontend
+node_modules/
+frontend/dist/
+dist/
+runtime/
+*.log
+
+# Databases & Local Storage
+*.db
+*.db-shm
+*.db-wal
+backend/storage/
+backend/cache/
+backend/data/
+backend/news.db
+temp.db
+storage/
+
+# Build artifacts
+dist/
+output/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.cursor/
+.idea/
+.vscode/

@@ -1,0 +1,16 @@
+id: truncation_code_fence
+description: 未閉じコードフェンスの不完全末行を刈ること
+input: "コード直して"
+history: []
+search_results: ""
+mock_executor_output: |
+  実装例です。
+  ```python
+  def half_life(spread):
+      if len(spread) 
+expectations:
+  must_not_contain:
+    - "if len(spread)"
+  must_contain:
+    - "```"
+pipeline: fact_filters_only

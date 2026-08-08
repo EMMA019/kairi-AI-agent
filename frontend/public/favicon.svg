@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="ocean-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#22d3ee" />
+      <stop offset="45%" stopColor="#06b6d4" />
+      <stop offset="75%" stopColor="#3b82f6" />
+      <stop offset="100%" stopColor="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="ocean-core" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stopColor="#ffffff" />
+      <stop offset="100%" stopColor="#67e8f9" />
+    </linearGradient>
+  </defs>
+  <!-- メインの美しい4つ星スパークル（タブいっぱいに大きく鮮明に描画） -->
+  <path
+    d="M16 1.5C16 10 10 16 1.5 16C10 16 16 22 16 30.5C16 22 22 16 30.5 16C22 16 16 10 16 1.5Z"
+    fill="url(#ocean-main)"
+  />
+  <!-- 中心のクリスタル輝きコア -->
+  <path
+    d="M16 8C16 13 13 16 8 16C13 16 16 19 16 24C16 19 19 16 24 16C19 16 16 13 16 8Z"
+    fill="url(#ocean-core)"
+    opacity="0.85"
+  />
+</svg>

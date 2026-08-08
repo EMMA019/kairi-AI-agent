@@ -1,0 +1,16 @@
+id: dangling_tool_promise
+description: ツール実行予告で終わる宙ぶらりん段落を除去
+input: "米国市場どうだった？"
+history: []
+search_results: |
+  [1] Markets mixed on July 24.
+mock_executor_output: |
+  承知しました。現在は週末で米国市場は休場です。
+
+  まず、残りの主要指数データを取得します。
+expectations:
+  must_not_contain:
+    - "取得します"
+  must_contain:
+    - "休場"
+pipeline: fact_filters_only

@@ -1,0 +1,60 @@
+
+/* ============================================
+   Search & Formatting Quality UI
+   ============================================ */
+
+/* Unconfirmed Badge */
+.unconfirmed-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--color-accent-amber);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.1);
+}
+
+/* Citations [1] */
+.message-bubble a[href^="http"] {
+  color: var(--color-accent-blue);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.message-bubble a[href^="http"]:hover {
+  border-bottom-color: var(--color-accent-blue);
+}
+
+/* Specific styling for [1] citations */
+.message-bubble sup a,
+.message-bubble a:is(:empty)::before {
+  /* This targets small link wrappers or LLM superscript links */
+}
+
+/* Markdown Alerts */
+.message-bubble blockquote {
+  border-left: 4px solid var(--color-border);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 16px;
+}
+
+.message-bubble blockquote.warning {
+  border-left-color: var(--color-accent-amber);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.message-bubble blockquote.note {
+  border-left-color: var(--color-accent-blue);
+  background: rgba(59, 130, 246, 0.05);
+}

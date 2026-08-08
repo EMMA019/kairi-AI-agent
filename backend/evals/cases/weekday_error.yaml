@@ -1,0 +1,12 @@
+id: weekday_error
+description: ソースにない曜日の勝手な断定を抑制
+input: "7月24日の市場は？"
+history: []
+search_results: |
+  [1] US markets on July 24, 2026 saw mixed closes.
+mock_executor_output: |
+  7月24日（月曜日）の米国市場は方向感の分かれる展開でした。
+expectations:
+  # strip_unverified_day_of_week 等で曜日が落ちるか、ソースに合わせる
+  must_not_match: "7月24日（月曜日）"
+pipeline: fact_filters_only

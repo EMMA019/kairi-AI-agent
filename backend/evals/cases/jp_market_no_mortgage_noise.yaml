@@ -1,0 +1,23 @@
+id: jp_market_no_mortgage_noise
+description: 日本市況で日経/TOPIXを根拠にし、mortgage/CD汚染を回答に載せない
+input: "今日の日本市場はどうだった？"
+history: []
+search_results: |
+  [1] Mortgage and refinance interest rates today: Highest rates
+  Best CD rates today: 4.20% APY
+  [2] 日経平均大引け 反発 終値64931円 TOPIXも上昇 - 日本経済新聞
+  【Yahoo Finance 確定スナップショット（推測禁止・この数値を優先）】
+  - 日経平均 (^N225): 64931.00 +320.00（+0.50%）
+  - TOPIX (^TOPX): 2950.00 +12.00（+0.41%）
+mock_executor_output: |
+  今日の東京市場は反発。日経平均は終値64931円、TOPIXも上昇した。
+expectations:
+  must_contain:
+    - "日経"
+    - "TOPIX"
+  must_not_contain:
+    - "Mortgage"
+    - "APY"
+    - "CD rates"
+pipeline: fact_filters_only
+note: "mortgage 降格は rerank 単体テストで担保。本ケースはスナップショット根拠の市況回答が汚染語を残さないこと。"

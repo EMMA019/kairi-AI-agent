@@ -1,0 +1,17 @@
+id: numeric_fabrication
+description: ソースにない終値ポイント数を捏造しない（免責または率のみ）
+input: "7/24のダウ終値は？"
+history: []
+search_results: |
+  [1] Dow rose about 0.5% on July 24, 2026. Exact closing points not listed.
+mock_executor_output: |
+  ダウ工業株30種平均は44,342.19ポイントで引けました。
+expectations:
+  # ソースにない絶対ポイントは検証ステージで抑制されるか免責が付く
+  must_contain_any:
+    - "※"
+    - "0.5%"
+    - "未確認"
+    - "確認できたポイント"
+    - "明記"
+pipeline: fact_filters_only

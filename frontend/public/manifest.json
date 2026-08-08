@@ -1,0 +1,17 @@
+{
+  "short_name": "Kairi",
+  "name": "Kairi — 平成ギャル相棒AI & トラベルプランナー",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#131314",
+  "theme_color": "#131314",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

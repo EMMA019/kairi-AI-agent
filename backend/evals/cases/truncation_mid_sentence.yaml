@@ -1,0 +1,15 @@
+id: truncation_mid_sentence
+description: 文途中で切れた末尾（い）を刈り取ること
+input: "カルパナの血統について"
+history: []
+search_results: |
+  [1] Kalpana won King George. Sire is Study of Man.
+mock_executor_output: |
+  おっしゃる通り、カルパナの父はスタディオブマンで、その父はディープインパクトです。ですからカルパナはディープインパクトの孫にあたる血統ですね。
+
+  い
+expectations:
+  ends_with_terminal: true
+  must_not_contain:
+    - "\nい"
+pipeline: fact_filters_only

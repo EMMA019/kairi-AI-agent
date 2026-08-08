@@ -1,0 +1,21 @@
+Kairi — zip アップデート（storage を守る）
+========================================
+
+ゴール: アプリ本体だけ新しくし、backend\storage（会話・設定・キー）は残す。
+
+手順（推奨）
+1. 実行中の start_kairi.bat / 黒い窓を終了する
+2. 現在のインストール先の backend\storage をコピー退避
+   例:  copy /E /I  C:\Apps\Kairi\backend\storage  C:\Apps\kairi_storage_backup
+3. 新しい zip を解凍（別フォルダでも上書きでも可）
+4. 退避した storage を新しいインストール先の backend\storage に戻す
+5. start_kairi.bat を起動し、設定 → 言語 でバージョン表示を確認
+
+補足
+- フロント（frontend\dist）とバックエンド本体は新しい zip のものを使う
+- runtime\python も新しい zip のものを使う（.kairi_deps_ok が無いと初回 pip が走る）
+- エクスポート zip（設定画面）でも会話DBを退避できる
+
+やってはいけない
+- storage を空の新しいフォルダで上書きして消す
+- conversations.db / settings.json だけ残して他を忘れる（基本はフォルダごと戻す）
