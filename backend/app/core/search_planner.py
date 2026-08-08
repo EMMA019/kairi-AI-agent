@@ -296,13 +296,14 @@ async def plan_search(
         logger.info(f"強制ルール適用: 'RSS' が含まれているため、providers を ['news']、needs_search を True に上書きしました。")
 
     # 【強制ハードコード】競馬・スポーツ実世界イベントのフォローアップは検索必須
-    _SPORTS_EVENT_KW = [
-        "競馬", "騎手", "単勝", "オッズ", "配当", "馬券", "G1", "GⅠ",
-        "キングジョージ", "ダービー", "血統", "鞍上",
-        "試合結果", "スコア", "優勝", "決勝",
+    # 強いKWのみ使用。「配当」「オッズ」「スコア」「優勝」「決勝」等の弱いKWは
+    # カジノ/株式/ゲーム会話で誤爆するため発火条件から除外する
+    _SPORTS_STRONG_KW = [
+        "競馬", "騎手", "単勝", "馬券", "血統", "鞍上",
+        "キングジョージ", "ダービー", "G1", "GⅠ", "試合結果",
     ]
     history_blob = " ".join(str(m.get("content", ""))[:300] for m in recent_history)
-    if any(kw in user_input or kw in history_blob for kw in _SPORTS_EVENT_KW):
+    if any(kw in user_input for kw in _SPORTS_STRONG_KW) or any(kw in history_blob for kw in _SPORTS_STRONG_KW):
         # 挨拶のみは除外
         if not re.fullmatch(r"[\s　]*(おはよう|こんにちは|こんばんは|よろしく|ありがとう)[！!。．\s　]*", user_input or ""):
             if not needs_search:

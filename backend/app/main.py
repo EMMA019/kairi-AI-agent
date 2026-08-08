@@ -52,12 +52,16 @@ async def lifespan(app: FastAPI):
         _main_logger.info(
             "Schedulers off (set KAIRI_ENABLE_SCHEDULERS=1 to enable radar/briefing)"
         )
+    # autostart: true のMCPサーバーをバックグラウンドで先行起動（initializeまで）
+    from app.core.mcp import mcp_manager
+    mcp_manager.start_autostart_servers()
     yield
     # 終了時: クリーンアップ
     if _schedulers_enabled():
         stop_briefing_scheduler()
         stop_radar_scheduler()
     shutdown_scheduler()
+    mcp_manager.stop_all()  # MCPサーバー（StudioMCP.exe等）をツリーごと停止
     from app.core.search.providers.http_client import close_http_client
     await close_http_client()
 
@@ -152,7 +156,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-# フロントエンド静的ビルドフォルダの検出とマウント (デスクトップアプリ対応)
+# フロントエンド静的ビルドフォルダの検出とマウント (買い切りデスクトップアプリ対応)
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")

@@ -110,7 +110,7 @@ async def auto_execute_with_retry(
         from pathlib import Path
         ws_dir = str(Path(__file__).parent.parent.parent / "workspace")
     
-    executed_tool_signatures = set()
+    executed_tool_counts = {}  # 同一ツール呼び出しの発生回数（3回目で無限ループ判定）
     force_tool_synthesis = False  # 重複ツール停止時など、生ログを本文にせず合成へ回す
     files_written_this_run = False
     last_gate_meta: dict | None = None
@@ -528,10 +528,17 @@ async def auto_execute_with_retry(
                             break
                 
                 if not has_error:
-                    tag_match = re.search(r'<(mcp_call|search|read_url)[^>]*>', stream_response)
+                    # 完全タグでシグネチャ抽出（args内のLuau比較演算子 > 等で切断されないように）
+                    tag_match = re.search(r'<(mcp_call|search|read_url)\b[\s\S]*?(?:/>|</\1>)', stream_response)
+                    if not tag_match:
+                        tag_match = re.search(r'<(mcp_call|search|read_url)[^>]*>', stream_response)
                     sig = tag_match.group(0) if tag_match else None
-                    if sig and sig in executed_tool_signatures:
-                        logger.warning(f"🛑 同一ツール呼び出しの重複検出により無限ループをシャットダウンします: {sig}")
+                    if sig:
+                        executed_tool_counts[sig] = executed_tool_counts.get(sig, 0) + 1
+                    # 3回目以降の同一呼び出しのみ無限ループと判定
+                    # （エラー修正後の再試行や search_game_tree の再確認等、正当な2回目は許容）
+                    if sig and executed_tool_counts[sig] >= 3:
+                        logger.warning(f"🛑 同一ツール呼び出しの重複検出により無限ループをシャットダウンします ({executed_tool_counts[sig]}回目): {sig[:200]}")
                         # 生の tool_results をユーザー本文に連結しない。合成パスへ回す。
                         loop_history.append({"role": "assistant", "content": stream_response})
                         tool_msg = "【システムからのツール実行結果】\n" + "\n\n".join(tool_handler.tool_results)
@@ -544,8 +551,6 @@ async def auto_execute_with_retry(
                         final_accumulated_response = ""
                         force_tool_synthesis = True
                         break
-                    if sig:
-                        executed_tool_signatures.add(sig)
 
                     loop_history.append({"role": "assistant", "content": stream_response})
                     tool_msg = "【システムからのツール実行結果】\n" + "\n\n".join(tool_handler.tool_results)

@@ -8,6 +8,7 @@ import asyncio
 import subprocess
 import threading
 import os
+import time
 from pathlib import Path
 from typing import Optional
 from app.utils.logger import get_logger
@@ -29,6 +30,7 @@ class MCPServerProcess:
         self._reader_thread: Optional[threading.Thread] = None
         self._running = False
         self._initialized = False
+        self._started_at: Optional[float] = None
 
     def start(self):
         if self._running and self.process and self.process.poll() is None:
@@ -51,6 +53,7 @@ class MCPServerProcess:
                 )
             self._running = True
             self._initialized = False  # 新プロセスはハンドシェイク未実施
+            self._started_at = time.time()
             self._start_reader()
             self._start_stderr_drain()
             logger.info(f"✅ MCP起動: {self.name}")
@@ -170,11 +173,35 @@ class MCPServerProcess:
         if "error" in r: return []
         return r.get("result", {}).get("tools", [])
 
+    # 起動直後の一過性エラー（WSブリッジ接続待ち等）のマーカー
+    _TRANSIENT_MARKERS = (
+        "Not connected to the WS host",
+        "Unable to find an active Studio instance",
+        "active Studio instance is not yet set",
+    )
+
     def call_tool(self, tool_name: str, arguments: dict) -> str:
-        r = self._send("tools/call", {"name": tool_name, "arguments": arguments} if arguments else {"name": tool_name})
-        if "error" in r: return f"[MCP Error] {r['error']}"
-        content = r.get("result", {}).get("content", [])
-        return "\n".join(c.get("text", str(c)) for c in content) if content else str(r.get("result", ""))
+        payload = {"name": tool_name, "arguments": arguments} if arguments else {"name": tool_name}
+        max_attempts = 4
+        for attempt in range(1, max_attempts + 1):
+            r = self._send("tools/call", payload)
+            if "error" in r: return f"[MCP Error] {r['error']}"
+            result = r.get("result", {})
+            content = result.get("content", [])
+            text = "\n".join(c.get("text", str(c)) for c in content) if content else str(result)
+            # MCP仕様の isError を明示エラー表記に変換（下流のエラー検出を確実にするため）。
+            # 例: Roblox Studio の "datamodel_type is required" は isError=true のプレーンテキストで返る。
+            if isinstance(result, dict) and result.get("isError"):
+                # 起動直後の一過性エラーは自動リトライ（StudioMCP等のWSブリッジ接続待ち）
+                age = time.time() - self._started_at if self._started_at else 999.0
+                if (attempt < max_attempts and age < 30.0
+                        and any(m in text for m in self._TRANSIENT_MARKERS)):
+                    logger.info(f"🔁 MCP一過性エラーのためリトライ ({attempt}/{max_attempts}): {self.name}")
+                    time.sleep(0.8)
+                    continue
+                return f"[MCP Tool Error] {text}"
+            return text
+        return "[MCP Tool Error] リトライ回数超過"
 
     def stop(self):
         self._running = False
@@ -243,6 +270,23 @@ class MCPManager:
             self.processes[server_name] = MCPServerProcess(server_name, cfg)
         return await asyncio.get_event_loop().run_in_executor(
             None, lambda: self.processes[server_name].call_tool(tool_name, arguments))
+
+    def start_autostart_servers(self):
+        """設定で autostart: true のサーバーをバックグラウンドで先行起動（initializeまで）"""
+        for name, cfg in self.servers.items():
+            if not cfg.get("autostart"):
+                continue
+            def _warm(n=name, c=cfg):
+                try:
+                    proc = self.processes.get(n)
+                    if not proc:
+                        proc = MCPServerProcess(n, c)
+                        self.processes[n] = proc
+                    proc.list_tools()  # start + initialize まで完了する
+                    logger.info(f"🚀 MCP自動起動完了: {n}")
+                except Exception as e:
+                    logger.warning(f"MCP自動起動失敗: {n} - {e}")
+            threading.Thread(target=_warm, daemon=True).start()
 
     def stop_all(self):
         for p in self.processes.values(): p.stop()

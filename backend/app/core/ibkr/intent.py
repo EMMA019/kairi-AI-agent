@@ -18,10 +18,12 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# \b は日本語（\w）直後で効かないため ASCII 境界のみ使う
+# \b は日本語（\w）直後で効かないため ASCII 境界のみ使う。
+# IBKR/TWS にも ASCII 境界を必須化（"ibkr_autotrader" のような
+# ワークスペース内プロジェクト名・ファイル名との誤マッチ防止）
 _IB_REF = re.compile(
-    r"(?i)IBKR|Interactive\s*Brokers|(?<![A-Za-z0-9_])IB(?![A-Za-z0-9_])|"
-    r"TWS|デモ口座|ペーパー口座|ブローカー",
+    r"(?i)(?<![A-Za-z0-9_])IBKR(?![A-Za-z0-9_])|Interactive\s*Brokers|(?<![A-Za-z0-9_])IB(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])TWS(?![A-Za-z0-9_])|デモ口座|ペーパー口座|ブローカー",
 )
 
 
@@ -30,11 +32,14 @@ def detect_ibkr_intent(user_input: str) -> Optional[str]:
     Returns: "account" | "positions" | "fills" | None
     """
     t = user_input or ""
-    # 動的コンテキスト付きでも先頭付近のユーザー文を見る
-    head = t.split("【動的システムコンテキスト】")[0]
-    if not _IB_REF.search(head) and not _IB_REF.search(t[:200]):
+    # 生のユーザー発言のみで判定する。注入されるワークスペース一覧
+    # （"ibkr_autotrader" 等のプロジェクト名を含む）や動的システム
+    # コンテキストは除外し、t[:200] フォールバックでもそれらを見ない。
+    head = t.split("【現在のワークスペースのファイル（参考）】")[0]
+    head = head.split("【動的システムコンテキスト】")[0]
+    if not _IB_REF.search(head):
         return None
-    blob = head if _IB_REF.search(head) else t[:500]
+    blob = head[:500]
     if any(k in blob for k in ("約定", "fills", "執行履歴", "売買履歴")):
         return "fills"
     if any(k in blob for k in ("ポジション", "保有", "建玉", "持ち株")):
