@@ -1,5 +1,8 @@
 # Kairi — Local market companion chat (BYOK)
 
+<img width="1901" height="940" alt="image" src="https://github.com/user-attachments/assets/a5ccf6c5-0a2b-4cec-bce5-8b5f7d4328c9" />
+<img width="1904" height="937" alt="image" src="https://github.com/user-attachments/assets/8acdb9a0-3b72-4f17-906c-82276d961dbb" />
+
 [![UI](https://img.shields.io/badge/UI-React_19_%2B_Tailwind_v4-blue)](#)
 [![Backend](https://img.shields.io/badge/Backend-FastAPI_%2B_SQLite-green)](#)
 [![Models](https://img.shields.io/badge/Models-DeepSeek_%2F_GPT_%2F_Gemini-orange)](#)
