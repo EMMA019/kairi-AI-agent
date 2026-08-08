@@ -2,6 +2,10 @@
 
 > 公開向けの英語 README は [README.md](README.md) です。ライセンスは [MIT](LICENSE)。
 
+<img width="1911" height="920" alt="image" src="https://github.com/user-attachments/assets/0bc17403-e1b7-4527-a1a2-c8bc0d50fcaf" />
+<img width="1903" height="922" alt="image" src="https://github.com/user-attachments/assets/00d89b91-538b-415c-b443-c16fffafcd82" />
+
+
 <div align="center">
   
 ![UI](https://img.shields.io/badge/UI-React_19_%2B_Tailwind_v4-blue)
