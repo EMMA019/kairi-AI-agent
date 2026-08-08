@@ -93,11 +93,11 @@ class DockerSandbox:
         try:
             res = subprocess.run(
                 ["docker", "ps", "-q", "-f", f"name={self.container_name}"],
-                capture_output=True, text=True, check=True
+                capture_output=True, text=True, check=True, timeout=25
             )
             if not res.stdout.strip():
                 logger.info(f"Starting new Docker sandbox container: {self.container_name}")
-                subprocess.run(["docker", "rm", "-f", self.container_name], capture_output=True)
+                subprocess.run(["docker", "rm", "-f", self.container_name], capture_output=True, timeout=25)
                 
                 res_run = subprocess.run([
                     "docker", "run", "-d",
@@ -106,7 +106,7 @@ class DockerSandbox:
                     "-w", "/workspace",
                     "nikolaik/python-nodejs:python3.11-nodejs20",
                     "tail", "-f", "/dev/null"
-                ], capture_output=True, text=True)
+                ], capture_output=True, text=True, timeout=120)  # 初回イメージpullを許容しつつ、デーモン無応答で固まらないように
                 
                 if res_run.returncode != 0:
                     raise Exception(f"Docker startup failed: {res_run.stderr}")

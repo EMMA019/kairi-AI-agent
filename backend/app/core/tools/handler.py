@@ -384,8 +384,16 @@ class ToolHandler:
                 success_msg = f"ファイル {safe_path} を新規作成・全体保存しました。次のステップに進んでください。"
                 self.tool_results.append(success_msg)
                 logger.info(f"AI出力によりファイルを全体保存しました: {target_path}")
+            except (PermissionError, IsADirectoryError) as e:
+                err_msg = (
+                    f"ファイル保存エラー ({path_str}): {e}\n"
+                    "※同名のディレクトリが既に存在するか、書き込み権限がありません。"
+                    "プロジェクト用のサブフォルダ（例: プロジェクト名/ファイル名.ext）を指定して再試行してください。"
+                )
+                logger.error(err_msg)
+                self.tool_results.append(err_msg)
             except Exception as e:
-                err_msg = f"ファイル自動保存エラー ({path_str}): {e}"
+                err_msg = f"ファイル自動保存エラー ({path_str}): {e}（pathはワークスペース相対パスで指定してください）"
                 logger.error(err_msg)
                 self.tool_results.append(err_msg)
                 
