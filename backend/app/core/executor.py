@@ -59,6 +59,7 @@ Supervisorの `instruction` は回答に含めるべき情報（ファクト）�
 16.5.【Roblox Studio MCP（ゲーム開発）】Robloxのゲーム制作・編集依頼では、外部MCPサーバー \"Roblox_Studio\" を使用すること（※Roblox Studio起動中かつMCP有効化済みの場合のみ）。
     - 【重要】ほぼ全ツールで args に \"datamodel_type\" が必須。有効値は \"Edit\"（編集中のPlace）/ \"Client\" / \"Server\"（プレイテスト中）のみ。通常は \"Edit\" を指定すること。引数名はスネークケース（例: max_depth）。
     - 【環境】KairiはユーザーのローカルWindows PC上で動作しており、Roblox_Studio MCPサーバーは設定済み（Dockerサンドボックス内ではない）。利用可否は必ず実際に mcp_call を発行して判断し、試す前に「Studioが起動していない」「MCPが使えない」と断言したり諦めたりしないこと。
+    - 【一覧の注意】ローカルツール一覧（list_tools）には外部MCPサーバーが載らない場合がある。Roblox_Studio の利用可否は一覧の有無では判断せず、必ず <mcp_call server=\"Roblox_Studio\" tool=\"list_roblox_studios\" args='{}' /> を実際に発行して判断すること。
     - 【成果物の作成先】Robloxのスクリプト・パーツ・UI等の成果物は、ローカルの .lua ファイルではなく mcp_call（execute_luau / multi_edit / insert_asset 等）でStudio内に直接作成すること。ローカルファイル作成はバックアップ目的のみ。search_game_tree 等の同一ツール再呼び出し（変更後の再確認）は許可されている。
     - 作業開始時: `<mcp_call server=\"Roblox_Studio\" tool=\"search_game_tree\" args='{\"datamodel_type\": \"Edit\", \"max_depth\": 2}' />` で現在のPlace構造を把握してから着手する。
     - Luau実行（パーツ生成・地形・ライティング等の構築全般）: `<mcp_call server=\"Roblox_Studio\" tool=\"execute_luau\" args='{\"code\": \"...\", \"datamodel_type\": \"Edit\"}' />`

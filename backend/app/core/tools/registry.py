@@ -145,9 +145,34 @@ def _echo(message: str) -> str:
 
 @tool_registry.register(name="list_tools", description="利用可能なツール一覧を表示")
 def _list_tools() -> str:
-    """ツール一覧表示"""
+    """ツール一覧表示（ローカル組み込み + 外部MCPサーバー）"""
     tools = tool_registry.list_tools()
-    return f"利用可能なツール ({len(tools)}件):\n" + "\n".join(f"- {t}" for t in tools)
+    lines = [f"ローカルツール ({len(tools)}件):"]
+    lines += [f"- {t}" for t in tools]
+    # 外部MCPサーバー（Roblox_Studio 等）はローカル一覧には載らないため明示的に併記する。
+    # 「この一覧に無い = 使えない」ではないことにモデルが気づけるようにする。
+    try:
+        from app.core.mcp import mcp_manager, MCPServerProcess
+        for name, cfg in mcp_manager.servers.items():
+            desc = (cfg.get("description") or "")[:80]
+            lines.append(f"\n外部MCPサーバー「{name}」: {desc}")
+            try:
+                proc = mcp_manager.processes.get(name)
+                if proc is None:
+                    proc = MCPServerProcess(name, cfg)
+                    mcp_manager.processes[name] = proc
+                mcp_tools = proc.list_tools()
+                if mcp_tools:
+                    names = ", ".join(str(t.get("name", "?")) for t in mcp_tools if isinstance(t, dict))
+                    lines.append(f"  ツール ({len(mcp_tools)}件): {names}")
+                else:
+                    lines.append("  (ツール一覧を取得できませんでした — サーバー未応答)")
+                lines.append(f"  呼び出し方: <mcp_call server=\"{name}\" tool=\"ツール名\" args='{{\"key\": \"value\"}}' />")
+            except Exception as e:
+                lines.append(f"  (起動/取得失敗: {e})")
+    except Exception:
+        pass
+    return "\n".join(lines)
 
 
 @tool_registry.register(name="calc", description="簡単な計算を行う（式を文字列で渡す）")
