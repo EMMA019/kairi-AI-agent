@@ -22,6 +22,28 @@ def get_supervisor_system_prompt(category: str = "general") -> str:
         logger.error(f"Failed to load supervisor_prompt.md: {e}")
         return "あなたは沈黙AIの「思考・監督モデル」です。ユーザーへの回答は直接行わず、JSON形式のみを出力してください。"
 
+    # 外部MCPサーバー能力の注入（設定済み＝このシステム自身の能力として認識させる）
+    try:
+        from app.core.mcp import mcp_manager
+        if mcp_manager.servers:
+            lines = [
+                "【🔌 外部MCPサーバー（本システムに接続設定済み＝あなた自身の能力）】",
+                "以下の外部MCPサーバーは既に設定・接続済みです。ユーザーにセットアップ手順を案内したり、「このAIには搭載されていない」「内蔵機能ではない」等と回答してはいけません。",
+            ]
+            for name, cfg in mcp_manager.servers.items():
+                desc = (cfg.get("description") or "")[:100]
+                lines.append(f"- {name}: {desc}")
+            lines.append(
+                "これらの能力に関係する依頼（例: Robloxのゲーム制作・編集・調査 → Roblox_Studio、"
+                "ワークスペース内ファイルの参照 → filesystem）では、一般論・Web検索による解説回答や設定案内を返してはいけません。"
+                "mode=\"task\"（ゲームの内容等の仕様が不明な場合のみ \"hearing\" で内容を聞く）として、"
+                "instruction に「外部MCPサーバーを <mcp_call server=\"サーバー名\" tool=\"ツール名\" args='{...}' /> で呼び出して実行する」旨を必ず含めること。"
+                "Roblox_Studio のツールは args に \"datamodel_type\": \"Edit\" が必須。"
+            )
+            prompt += "\n".join(lines) + "\n\n"
+    except Exception:
+        pass
+
     # Domain specific rules
     if category == "finance":
         cat_file = "supervisor_prompt_finance.md"
