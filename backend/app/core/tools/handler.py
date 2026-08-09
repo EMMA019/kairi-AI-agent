@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 import shutil
 import datetime
@@ -35,6 +36,35 @@ from app.core.search import web_search
 logger = get_logger(__name__)
 
 MOCK_KEYWORDS = ["TODO", "FIXME", "NotImplemented", "ダミーデータ", "後で実装"]
+
+
+def _parse_mcp_args(args_str: str) -> dict:
+    """mcp_call の args 属性をdictへパースする。
+
+    args='{"k": "v"}'（単引用符推奨）に加え、エスケープ形式
+    args="{\\"k\\": \\"v\\"}" も許容。パース不能時は raw_input に
+    フォールバック（MCPサーバー側のエラーメッセージで下流が自己修復する）。
+    """
+    if args_str is None or not str(args_str).strip():
+        return {}
+    s = str(args_str)
+    try:
+        parsed = json.loads(s)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    # エスケープ形式のフォールバック: {\"k\": \"v\"} → {"k": "v"}
+    try:
+        parsed = json.loads(s.replace('\\"', '"'))
+        if isinstance(parsed, dict):
+            logger.warning("🔧 mcp_call args: エスケープ付きJSONをアンエスケープしてパースしました（今後は単引用符形式 args='{...}' を推奨）")
+            return parsed
+    except Exception:
+        pass
+    logger.warning(f"⚠️ mcp_call args: JSONパースに失敗したため raw_input として渡します: {s[:200]}")
+    return {"raw_input": s}
+
 
 class ToolHandler:
     """
@@ -695,12 +725,10 @@ class ToolHandler:
             server_name = match[1]
             tool_name = match[3]
             args_str = match[4] if len(match) == 6 else match[5]
-            
-            try:
-                args = json.loads(args_str) if args_str else {}
-            except Exception:
-                args = {"raw_input": args_str}
-            
+
+            args = _parse_mcp_args(args_str)
+            logger.info(f"🔌 mcp_call実行: {server_name}/{tool_name} args={(args_str or '{}')[:200]}")
+
             try:
                 from app.core.mcp import mcp_manager
                 res = await mcp_manager.call_tool(server_name, tool_name, args)
@@ -726,12 +754,23 @@ class ToolHandler:
         for tool_match in re.finditer(r'<mcp_call\s+tool=(["\'])(.*?)\1([^>]*)\/?>', current_response):
             tool_name = tool_match.group(2)
             attr_part = tool_match.group(3).strip()
-            
+
             # key=value をパース
             params = {}
             for kv in re.findall(r'([a-zA-Z_]+)=(["\'])(.*?)\2', attr_part):
                 params[kv[0]] = kv[2]
-            
+
+            # args属性のJSONを展開して実引数にマージする（重要）。
+            # これがないと tool="Server->Tool" args='{...}' 形式で datamodel_type 等が
+            # 文字列パラメータ内に埋もれたままMCPサーバーへ渡り、
+            # 「datamodel_type is required」エラーが永久に解消しない。
+            if isinstance(params.get("args"), str):
+                parsed_args = _parse_mcp_args(params["args"])
+                if parsed_args and "raw_input" not in parsed_args:
+                    extra = {k: v for k, v in params.items() if k != "args"}
+                    params = {**parsed_args, **extra}
+
+            logger.info(f"🔌 mcp_call実行(ローカル/逆引き): {tool_name} params={str(params)[:200]}")
             if tool_name:
                 from app.core.tools.registry import tool_registry
                 if tool_registry.get_tool(tool_name):
@@ -752,6 +791,14 @@ class ToolHandler:
                 full_tag = tool_match.group(0)
                 current_response = current_response.replace(full_tag, mcp_block, 1)
         
+        # パース不能だった mcp_call タグの検出（フォーマットずれの可視化・サイレント失敗の防止）
+        leftover_tags = re.findall(r'<mcp_call\b[^>]*>', current_response)
+        if leftover_tags:
+            logger.warning(
+                f"⚠️ mcp_call: パース不能なタグ{len(leftover_tags)}件をスキップしました"
+                f"（server=/tool=/args= の属性形式を確認）: {leftover_tags[:2]}"
+            )
+
         # 全ツール実行結果に対する不可視文字・間接プロンプトインジェクション防御サニタイズ適用
         from app.core.fact_filter import sanitize_indirect_prompt_injection
         self.tool_results = [sanitize_indirect_prompt_injection(str(tr)) for tr in self.tool_results]

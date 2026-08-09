@@ -20,6 +20,11 @@ from .compression import _smart_compress_loop_history
 from .supervisor import _analyze_with_supervisor
 
 
+def _error_signature(error_info: str) -> str:
+    """エラー文本を重複検出用の正規化シグネチャに変換する（同一エラーの反復検出用）。"""
+    return re.sub(r"\s+", " ", str(error_info or "")).strip()[:150]
+
+
 def _snapshot_visible(text: str) -> str:
     """ユーザーに見せられる本文だけを抽出して保持用に返す。"""
     try:
@@ -111,6 +116,7 @@ async def auto_execute_with_retry(
         ws_dir = str(Path(__file__).parent.parent.parent / "workspace")
     
     executed_tool_counts = {}  # 同一ツール呼び出しの発生回数（3回目で無限ループ判定）
+    error_signature_counts = {}  # 同一エラー文本の発生回数（2回目で自動修正を打ち切り）
     force_tool_synthesis = False  # 重複ツール停止時など、生ログを本文にせず合成へ回す
     files_written_this_run = False
     last_gate_meta: dict | None = None
@@ -499,7 +505,16 @@ async def auto_execute_with_retry(
                     if error_info:
                         has_error = True
                         logger.info(f"🔧 エラー検出、自動修正を試みます (loop {loop_count})")
-                        
+
+                        # 同一エラーの反復検出: 同じエラー文本が2回出たら自動修正では解決不能と
+                        # 判断し、空転（LLMコール浪費）を止めて回答合成パスへ引き渡す。
+                        error_sig = _error_signature(error_info)
+                        error_signature_counts[error_sig] = error_signature_counts.get(error_sig, 0) + 1
+                        if error_signature_counts[error_sig] >= 2:
+                            logger.warning(f"⛔ 同一エラーが2回反復したため自動修正を中止します: {error_sig[:100]}")
+                            error_abort = True
+                            break
+
                         if loop_count < max_supervisor_retries:
                             error_context = (
                                 "【ツール実行エラー】\n"

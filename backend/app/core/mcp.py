@@ -8,6 +8,7 @@ import asyncio
 import subprocess
 import threading
 import os
+import re
 import time
 from pathlib import Path
 from typing import Optional
@@ -180,18 +181,75 @@ class MCPServerProcess:
         "active Studio instance is not yet set",
     )
 
+    def _is_roblox(self) -> bool:
+        return "roblox" in (self.name or "").lower()
+
+    def _try_recover_active_studio(self) -> bool:
+        """Roblox: アクティブStudio未設定時に list_roblox_studios → set_active_studio で最初のインスタンスを自動選択する。"""
+        try:
+            r = self._send("tools/call", {"name": "list_roblox_studios", "arguments": {}})
+            if not isinstance(r, dict) or "error" in r:
+                logger.warning(f"⚠️ Roblox復旧: list_roblox_studios 失敗: {str(r)[:200]}")
+                return False
+            result = r.get("result", {}) or {}
+            content = result.get("content", [])
+            text = "\n".join(c.get("text", str(c)) for c in content) if content else str(result)
+            m = re.search(r'"id"\s*:\s*"([^"]+)"', text)
+            if not m:
+                logger.warning("⚠️ Roblox復旧: studio id を取得できませんでした（Roblox StudioがPlaceを開いた状態で起動中か確認）")
+                return False
+            studio_id = m.group(1)
+            r2 = self._send("tools/call", {"name": "set_active_studio", "arguments": {"studio_id": studio_id}})
+            if isinstance(r2, dict) and "error" in r2:
+                logger.warning(f"⚠️ Roblox set_active_studio 失敗: {str(r2['error'])[:200]}")
+                return False
+            res2 = r2.get("result", {}) if isinstance(r2, dict) else {}
+            if isinstance(res2, dict) and res2.get("isError"):
+                c2 = res2.get("content", [])
+                t2 = "\n".join(c.get("text", str(c)) for c in c2) if c2 else str(res2)
+                logger.warning(f"⚠️ Roblox set_active_studio がエラーを返しました: {t2[:200]}")
+                return False
+            logger.info(f"✅ Roblox: アクティブStudioを自動設定しました ({studio_id})")
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Roblox アクティブStudio自動復旧中に例外: {e}")
+            return False
+
     def call_tool(self, tool_name: str, arguments: dict) -> str:
+        arguments = dict(arguments or {})
         payload = {"name": tool_name, "arguments": arguments} if arguments else {"name": tool_name}
+        logger.info(f"🔌 MCP呼び出し: {self.name}/{tool_name}")
         max_attempts = 4
+        active_recovered = False
+        datamodel_retried = False
         for attempt in range(1, max_attempts + 1):
             r = self._send("tools/call", payload)
-            if "error" in r: return f"[MCP Error] {r['error']}"
+            if "error" in r:
+                logger.warning(f"[MCP Error] {self.name}/{tool_name}: {str(r['error'])[:300]}")
+                return f"[MCP Error] {r['error']}"
             result = r.get("result", {})
             content = result.get("content", [])
             text = "\n".join(c.get("text", str(c)) for c in content) if content else str(result)
             # MCP仕様の isError を明示エラー表記に変換（下流のエラー検出を確実にするため）。
             # 例: Roblox Studio の "datamodel_type is required" は isError=true のプレーンテキストで返る。
             if isinstance(result, dict) and result.get("isError"):
+                # (1) Roblox: datamodel_type欠落 → "Edit" を自動補完して1回だけリトライ
+                if (self._is_roblox() and not datamodel_retried
+                        and "datamodel_type is required" in text):
+                    datamodel_retried = True
+                    arguments = {**arguments, "datamodel_type": "Edit"}
+                    payload = {"name": tool_name, "arguments": arguments}
+                    logger.info(f"🔧 {self.name}/{tool_name}: datamodel_type='Edit' を自動補完してリトライします")
+                    continue
+                # (2) Roblox: アクティブStudio未設定 → 最初のインスタンスを自動選択して1回だけリトライ
+                #     （起動直後でなくても復旧する。StudioMCPはPlaceを開いていてもactive未設定のことがある）
+                if (self._is_roblox() and not active_recovered
+                        and ("active Studio instance is not yet set" in text
+                             or "Unable to find an active Studio instance" in text)):
+                    active_recovered = True
+                    logger.warning(f"⚠️ {self.name}: アクティブStudio未設定 → 自動選択を試みます")
+                    if self._try_recover_active_studio():
+                        continue
                 # 起動直後の一過性エラーは自動リトライ（StudioMCP等のWSブリッジ接続待ち）
                 age = time.time() - self._started_at if self._started_at else 999.0
                 if (attempt < max_attempts and age < 30.0
@@ -202,6 +260,7 @@ class MCPServerProcess:
                 # 引数エラーには有効値ヒントを付記し、LLM（executor/supervisor）が正しい値で自己修復できるようにする
                 if "datamodel_type is required" in text or "Invalid datamodel_type" in text:
                     text += "\n(hint: datamodel_type の有効値は \"Edit\" / \"Client\" / \"Server\" の3つのみ。編集中のPlace操作は \"Edit\" を指定)"
+                logger.warning(f"[MCP Tool Error] {self.name}/{tool_name}: {text[:300]}")
                 return f"[MCP Tool Error] {text}"
             return text
         return "[MCP Tool Error] リトライ回数超過"
