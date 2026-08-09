@@ -874,8 +874,12 @@ async def auto_execute_with_retry(
     def _extract_synth_text(rebuilt: str) -> str:
         from app.core.fact_filters.markup import (
             strip_internal_markup,
+            strip_meta_reasoning_preamble,
             split_final_answer,
         )
+
+        def _finalize(t: str) -> str:
+            return strip_meta_reasoning_preamble(t)
 
         body, empty_m = normalize_final_answer_body(rebuilt)
         if empty_m:
@@ -885,12 +889,12 @@ async def auto_execute_with_retry(
                 logger.warning(
                     "⚠️ Synth returned empty FINAL_ANSWER body; using cleaned preamble"
                 )
-                return cleaned
+                return _finalize(cleaned)
             cleaned_all = strip_internal_markup(rebuilt).strip()
-            return cleaned_all
+            return _finalize(cleaned_all)
         if "<<<FINAL_ANSWER>>>" in (rebuilt or ""):
-            return strip_internal_markup(body).strip()
-        return strip_internal_markup(rebuilt).strip()
+            return _finalize(strip_internal_markup(body).strip())
+        return _finalize(strip_internal_markup(rebuilt).strip())
 
     async def _synthesize_from_tools(prompt: str, sys_extra: str) -> str:
         rebuilt = ""
@@ -908,6 +912,40 @@ async def auto_execute_with_retry(
             # Stream only post-strip deltas would be complex; emit raw then UI clear on done
             if yield_sse_func:
                 yield_sse_func({"type": "chunk", "content": chunk})
+        # 合成パスもトークン上限で切断されうる。途中切れ検知時は1回だけ継続生成する
+        from app.core.fact_filters.markup import looks_incomplete_output
+        if looks_incomplete_output(rebuilt):
+            logger.info("🔄 合成回答の途中切れを検知したため継続生成を1回試みます")
+            try:
+                cont_prompt = (
+                    "直前の回答が途中で切れています。続きの文章のみを出力してください。"
+                    "Markdown表の途中ならセルを完成させて表を閉じてください。"
+                    "前文の繰り返し・XMLツールタグ・thinkタグは禁止です。"
+                )
+                cont_history = (exec_history[-4:] if exec_history else []) + [
+                    {"role": "assistant", "content": strip_internal_markup(rebuilt)},
+                    {"role": "user", "content": cont_prompt},
+                ]
+                cont_stream = run_executor(
+                    user_input=cont_prompt,
+                    instruction=instruction,
+                    search_results=search_results or tool_results_summary,
+                    memory_text=memory_text,
+                    history_messages=cont_history,
+                    mode=mode,
+                    system_instruction=_synth_system_prompt(sys_extra),
+                    enable_thinking=False,
+                )
+                cont_buf = ""
+                async for chunk in cont_stream:
+                    cont_buf += chunk
+                continuation = strip_internal_markup(cont_buf)
+                if continuation.strip():
+                    rebuilt = rebuilt.rstrip() + "\n" + continuation
+                    if yield_sse_func:
+                        yield_sse_func({"type": "chunk", "content": "\n" + continuation})
+            except Exception as e:
+                logger.warning(f"Synth continuation failed: {e}")
         return _extract_synth_text(rebuilt)
 
     def _deterministic_tool_fallback() -> str:

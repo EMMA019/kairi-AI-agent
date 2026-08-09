@@ -113,6 +113,50 @@ def strip_internal_markup(text: str) -> str:
         logger.info("🧹 内部マークアップ（think/ツールタグ）を除去しました")
     return cleaned
 
+# synth prompt constraint-echo markers (2+ hits = meta preamble)
+_META_ECHO_PATTERNS = [
+    re.compile(r"\bno think\b", re.IGNORECASE),
+    re.compile(r"\bno tool xml\b", re.IGNORECASE),
+    re.compile(r"\bplanning notes?\b", re.IGNORECASE),
+    re.compile(r"\bfinal answer\b", re.IGNORECASE),
+    re.compile(r"FINAL_ANSWER"),
+    re.compile(r"\bthe instruction\b", re.IGNORECASE),
+    re.compile(r"\brule \d+\b", re.IGNORECASE),
+    re.compile(r"\buser-facing\b", re.IGNORECASE),
+    re.compile(r"\bSupervisor\b"),
+    re.compile(r"\bcode fences?\b", re.IGNORECASE),
+    re.compile(r"\bpreamble\b", re.IGNORECASE),
+    re.compile(r"出力してはいけません"),
+    re.compile(r"出力禁止"),
+    re.compile(r"指示どおり"),
+]
+
+
+def strip_meta_reasoning_preamble(text: str) -> str:
+    """合成/再生成パスでモデルが平文で漏らすメタ推論プリアンブルを除去する。
+
+    合成プロンプトは <think> や <<<FINAL_ANSWER>>> を禁止するため、
+    モデルが「no think, no tool XML, no planning notes...」のような
+    制約エコー思考を平文で前置きすると既存フィルタを素通りする。
+    実回答は概ね最初のMarkdown見出しから始まるので、見出し前の
+    ブロックに制約エコー語彙が2個以上あればプリアンブルと判定して除去。
+    見出しが無い、または1個以下なら何もしない（誤爆防止）。
+    """
+    if not text or not isinstance(text, str):
+        return text
+    t = text.strip()
+    m = re.search(r"(?m)^#{1,6}\s+\S", t)
+    if not m:
+        return text
+    head = t[: m.start()].strip()
+    if not head:
+        return t
+    hits = sum(1 for pat in _META_ECHO_PATTERNS if pat.search(head))
+    if hits >= 2:
+        logger.info("🧹 メタ推論プリアンブル（制約エコー）を除去しました")
+        return t[m.start():]
+    return text
+
 
 def looks_like_supervisor_dump(text: str) -> bool:
     """Supervisor の JSON/モード独白が本文に漏れているか。"""
