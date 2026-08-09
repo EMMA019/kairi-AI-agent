@@ -651,6 +651,37 @@ class ToolHandler:
             
         return current_response, events
 
+    async def _resolve_mcp_tool(self, tool_name: str, params: dict):
+        """ローカルに無いツール名を外部MCPサーバーのツールとして逆引き解決する。
+        "Server->Tool" 連結形式・server= 属性欠落形式を吸収する。"""
+        from app.core.mcp import mcp_manager
+        # "Server->Tool" 連結形式
+        if "->" in tool_name:
+            server_name, bare_tool = tool_name.split("->", 1)
+            if server_name in mcp_manager.servers:
+                res = await mcp_manager.call_tool(server_name, bare_tool, params)
+                return res, server_name
+            tool_name = bare_tool  # サーバー名不一致時は裸ツール名で逆引きへ
+        # ツール名からサーバー逆引き（ターン内キャッシュ付き）
+        if not hasattr(self, "_mcp_tool_map"):
+            self._mcp_tool_map = {}
+        if tool_name not in self._mcp_tool_map:
+            for server_name in mcp_manager.servers:
+                try:
+                    tools = await mcp_manager.list_server_tools(server_name)
+                except Exception:
+                    continue
+                for t in tools or []:
+                    if isinstance(t, dict) and t.get("name"):
+                        self._mcp_tool_map.setdefault(t["name"], server_name)
+                if tool_name in self._mcp_tool_map:
+                    break
+        server_name = self._mcp_tool_map.get(tool_name)
+        if not server_name:
+            return None, None
+        res = await mcp_manager.call_tool(server_name, tool_name, params)
+        return res, server_name
+
     async def _handle_mcp_tools(self, current_response: str) -> Tuple[str, List[dict]]:
         """MCP (Model Context Protocol) タグをパースして外部/ローカルツールを実行する"""
         events = []
@@ -703,8 +734,19 @@ class ToolHandler:
             
             if tool_name:
                 from app.core.tools.registry import tool_registry
-                res = tool_registry.execute(tool_name, params)
-                self.tool_results.append(f"[Local Tool: {tool_name}]\n{res}")
+                if tool_registry.get_tool(tool_name):
+                    res = tool_registry.execute(tool_name, params)
+                    self.tool_results.append(f"[Local Tool: {tool_name}]\n{res}")
+                else:
+                    # ローカルに無いツール名 → 外部MCPサーバーのツールとして逆引き解決を試みる
+                    # （"Server->Tool" 連結形式や server= 属性欠落形式を吸収）
+                    res, used_server = await self._resolve_mcp_tool(tool_name, params)
+                    if used_server:
+                        self.tool_results.append(f"[MCP Tool: {used_server}->{tool_name}]\n{res}")
+                    else:
+                        # 解決できなければ従来の不明ツールエラー（外部サーバー案内付き）
+                        res = tool_registry.execute(tool_name, params)
+                        self.tool_results.append(f"[Local Tool: {tool_name}]\n{res}")
                 mcp_block = f"\n\n*[🔧 ローカルツール実行: `{tool_name}`]*\n\n"
                 events.append({"type": "chunk", "content": mcp_block})
                 full_tag = tool_match.group(0)

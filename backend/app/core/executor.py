@@ -40,7 +40,8 @@ Supervisorの `instruction` は回答に含めるべき情報（ファクト）�
 14.【検索言語ルール】日本に関する情報（国内ニュース、日本企業、日本語コンテンツ）以外は、**必ず英語の検索クエリを使用すること。** 例えば「世界の政治経済ニュース」ではなく `world politics news 2026` と検索する。Brave検索は英語クエリの方が精度が高いため。
 15.【Docker・ビルド・デプロイコマンドの実行ルール】コード作成後、ビルドや実行が必要な場合は必ず `<run_command>` を使用すること。
 16.【ローカルツールの呼び出しルール】組み込みのローカルツールを呼び出す場合は `<mcp_call tool="ツール名" パラメータ名="値" />` を使用すること。
-   - 利用可能なツール: `<mcp_call tool="list_tools" />` で一覧表示
+   - 利用可能なツール: `<mcp_call tool="list_tools" />` で一覧表示（外部MCPサーバーのツールも含む）
+   - 外部MCPサーバーの一覧と接続状態: `<mcp_call tool="list_servers" />` で表示
    - 計算: `<mcp_call tool="calc" expression="1+2*3" />`
    - エコー: `<mcp_call tool="echo" message="テスト" />`
    - 株価・指数: `<mcp_call tool="get_stock_quote" ticker="^N225" />` / `<mcp_call tool="get_jp_market_snapshot" />`

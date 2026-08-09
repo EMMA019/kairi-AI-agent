@@ -504,7 +504,11 @@ async def auto_execute_with_retry(
                             error_context = (
                                 "【ツール実行エラー】\n"
                                 f"{error_info}\n\n"
-                                "上記エラーを分析し、修正したコードを再実行してください。"
+                                "上記エラーを分析し、修正したコードを再実行してください。\n"
+                                "※外部MCPサーバーの正しい呼び出し形式: <mcp_call server=\"サーバー名\" tool=\"ツール名\" args='{\"key\":\"value\"}' />\n"
+                                "（server= と tool= は分離し、tool= にサーバー名を含めない。args は必須。"
+                                "Roblox_Studio のほぼ全ツールは args に \"datamodel_type\": \"Edit\" が必須。"
+                                "サーバー一覧は list_servers、ツール一覧は list_tools で確認可能）"
                             )
                             loop_history.append({"role": "assistant", "content": stream_response})
                             loop_history.append({"role": "user", "content": error_context})

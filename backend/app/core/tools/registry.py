@@ -115,7 +115,11 @@ class ToolRegistry:
     def execute(self, name: str, params: dict) -> str:
         tool = self._tools.get(name)
         if not tool:
-            return f"[ERROR] 不明なツール: {name}。利用可能: {', '.join(self.list_tools())}"
+            return (
+                f"[ERROR] 不明なツール: {name}。利用可能なローカルツール: {', '.join(self.list_tools())}。"
+                "なお外部MCPサーバーのツールは `list_servers` で確認し、"
+                "<mcp_call server=\"サーバー名\" tool=\"ツール名\" args='{\"key\":\"value\"}' /> で呼び出してください"
+            )
         return tool.execute(params)
     
     def list_tools(self) -> list[str]:
@@ -173,6 +177,26 @@ def _list_tools() -> str:
     except Exception:
         pass
     return "\n".join(lines)
+
+
+@tool_registry.register(name="list_servers", description="外部MCPサーバー（Roblox_Studio等）の一覧と接続状態を表示")
+def _list_servers() -> str:
+    """外部MCPサーバー一覧表示"""
+    try:
+        from app.core.mcp import mcp_manager
+        if not mcp_manager.servers:
+            return "外部MCPサーバーは設定されていません"
+        lines = [f"外部MCPサーバー ({len(mcp_manager.servers)}件):"]
+        for name, cfg in mcp_manager.servers.items():
+            running = name in mcp_manager.processes
+            state = "起動中" if running else "未起動（初回呼び出し時に自動起動）"
+            desc = (cfg.get("description") or "")[:60]
+            lines.append(f"- {name} [{state}] {desc}")
+            lines.append(f"  呼び出し方: <mcp_call server=\"{name}\" tool=\"ツール名\" args='{{\"key\": \"value\"}}' />")
+        lines.append("※各サーバーのツール一覧は list_tools で確認できます")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"[ERROR] MCPサーバー一覧の取得失敗: {e}"
 
 
 @tool_registry.register(name="calc", description="簡単な計算を行う（式を文字列で渡す）")
